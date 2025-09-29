@@ -5,8 +5,7 @@ import {
   facultyService,
   classroomsService,
   laboratoriesService,
-  timetableSlotsService,
-  DataInitializationService
+  timetableSlotsService
 } from '../services/api';
 
 export const useTimetableData = () => {
@@ -24,10 +23,7 @@ export const useTimetableData = () => {
       try {
         setLoading(true);
         setError(null);
-
-        // Initialize sample data if needed
-        await DataInitializationService.initializeSampleData();
-
+        
         // Set up real-time listeners
         const unsubscribeSubjects = subjectsService.onSnapshot((data) => {
           setSubjects(data);

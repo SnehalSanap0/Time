@@ -240,7 +240,7 @@ const SubjectManagement = () => {
               >
                 <option value="">Select Faculty</option>
                 {faculty.map((facultyMember) => (
-                  <option key={facultyMember.id} value={facultyMember.name}>
+                  <option key={facultyMember.id} value={facultyMember.id}>
                     {facultyMember.name} - {facultyMember.department}
                   </option>
                 ))}

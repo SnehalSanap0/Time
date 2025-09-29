@@ -1,6 +1,6 @@
 import { Subject, Faculty, Classroom, Lab, TimetableSlot } from '../types/timetable';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 // Generic API service class
 class ApiService<T extends { id?: string }> {
