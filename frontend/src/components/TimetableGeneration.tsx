@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Settings, AlertCircle, CheckCircle, Clock, Calendar, Users, BookOpen } from 'lucide-react';
-import { useTimetableData } from '../hooks/useTimetableData';
+import { useState, useEffect } from 'react';
+import { Clock, CheckCircle, AlertCircle, Calendar, BookOpen, Users, Settings, Play } from 'lucide-react';
 import { TimetableService } from '../services/api';
+import { Subject, Faculty, Classroom, Lab, TimetableSlot, Conflict } from '../types/timetable';
+import { useTimetableData } from '../hooks/useTimetableData';
 import { LoadingSpinner } from './LoadingSpinner';
 import { TimetableGenerator } from '../utils/timetableGenerator';
-
 interface GenerationConfig {
   semester: number;
   year: 'SE' | 'TE' | 'BE';
@@ -80,12 +80,17 @@ const TimetableGeneration = () => {
     validateConfiguration();
   }, [subjects, faculty, classrooms, labs, config]);
 
+  // Helper function to get faculty name from subject
+  const getFacultyName = (subject: { faculty: string | { name: string } }) => {
+    return typeof subject.faculty === 'object' ? subject.faculty.name : subject.faculty;
+  };
+
   const validateConfiguration = () => {
     const newConflicts: ConflictItem[] = [];
     const semesterSubjects = subjects.filter(s => s.semester === config.semester && s.year === config.year);
     const yearClassrooms = classrooms.filter(c => c.assignedYear === config.year);
     const availableFaculty = faculty.filter(f => 
-      semesterSubjects.some(s => f.subjects.includes(s.code) || f.name === s.faculty)
+      semesterSubjects.some(s => f.subjects.includes(s.code) || f.name === getFacultyName(s))
     );
 
     // Check if we have subjects for the selected semester and year
@@ -107,7 +112,7 @@ const TimetableGeneration = () => {
     }
 
     // Check faculty availability
-    const requiredFaculty = new Set(semesterSubjects.map(s => s.faculty));
+    const requiredFaculty = new Set(semesterSubjects.map(s => getFacultyName(s)));
     const availableFacultyNames = new Set(faculty.map(f => f.name));
     const missingFaculty = Array.from(requiredFaculty).filter(f => !availableFacultyNames.has(f));
     
@@ -131,7 +136,7 @@ const TimetableGeneration = () => {
 
     // Check faculty workload
     availableFaculty.forEach(f => {
-      const assignedSubjects = semesterSubjects.filter(s => s.faculty === f.name);
+      const assignedSubjects = semesterSubjects.filter(s => getFacultyName(s) === f.name);
       const totalHours = assignedSubjects.reduce((sum, s) => sum + s.theoryHours + s.labHours, 0);
       const maxWeeklyHours = f.maxHoursPerDay * 5; // 5 days a week
 
@@ -205,7 +210,7 @@ const handleGenerate = async () => {
     const semesterSubjects = subjects.filter(s => s.semester === config.semester && s.year === config.year);
     const yearClassrooms = classrooms.filter(c => c.assignedYear === config.year);
     const relevantFaculty = faculty.filter(f => 
-      semesterSubjects.some(s => f.name === s.faculty)
+      semesterSubjects.some(s => f.name === getFacultyName(s) || f.subjects.includes(s.code))
     );
 
     if (semesterSubjects.length === 0) {

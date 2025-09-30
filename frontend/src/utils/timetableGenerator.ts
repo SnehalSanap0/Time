@@ -87,7 +87,6 @@ private generateTheorySchedules(): void {
       : [...morningSlots.slice(2), ...afternoonSlots];
 
     for (const subject of yearSubjects) {
-      const facultyMember = this.faculty.find(f => f.name === subject.faculty);
       
       for (let hour = 0; hour < subject.theoryHours; hour++) {
         if (currentSlot >= availableSlots.length) {
@@ -110,7 +109,7 @@ private generateTheorySchedules(): void {
           day: days[currentDay],
           time: availableSlots[currentSlot],
           subject: subject.name,
-          faculty: subject.faculty,
+          faculty: typeof subject.faculty === 'object' ? subject.faculty.name : subject.faculty,
           room: assignedClassroom.name,
           type: 'theory',
           year: year,
@@ -122,9 +121,9 @@ private generateTheorySchedules(): void {
         if (this.hasFacultyConflict(slot)) {
           this.conflicts.push({
             type: 'warning',
-            message: `Faculty conflict for ${subject.faculty} on ${days[currentDay]} at ${availableSlots[currentSlot]}`,
+            message: `Faculty conflict for ${typeof subject.faculty === 'object' ? subject.faculty.name : subject.faculty} on ${days[currentDay]} at ${availableSlots[currentSlot]}`,
             severity: 'medium',
-            affectedEntities: [subject.faculty, subject.name]
+            affectedEntities: [typeof subject.faculty === 'object' ? subject.faculty.name : subject.faculty, subject.name]
           });
         } else {
           this.generatedSlots.push(slot);
@@ -168,7 +167,7 @@ private generateLabSchedules(): void {
             break;
           }
 
-          const availableLab = this.findAvailableLab(days[currentDay], labSlots[currentSlot], subject);
+          const availableLab = this.findAvailableLab(days[currentDay], labSlots[currentSlot]);
           
           if (!availableLab) {
             this.conflicts.push({
@@ -186,7 +185,7 @@ private generateLabSchedules(): void {
             day: days[currentDay],
             time: labSlots[currentSlot],
             subject: `${subject.name} Lab`,
-            faculty: subject.faculty,
+            faculty: typeof subject.faculty === 'object' ? subject.faculty.name : subject.faculty,
             room: availableLab.name,
             type: 'lab',
             year: year,
@@ -203,7 +202,7 @@ private generateLabSchedules(): void {
   }
 }
 
-  private findAvailableLab(day: string, time: string, subject: Subject): Lab | null {
+  private findAvailableLab(day: string, time: string): Lab | null {
     // Find a lab that's not already booked for this time slot
     const bookedLabs = this.generatedSlots
       .filter(slot => slot.day === day && slot.time === time && slot.type === 'lab')

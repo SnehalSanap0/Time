@@ -5,7 +5,7 @@ export interface Subject {
   year: 'SE' | 'TE' | 'BE';
   theoryHours: number;
   labHours: number;
-  faculty: string;
+  faculty: string | { _id: string; name: string; email: string; department: string };
   semester: number;
 }
 

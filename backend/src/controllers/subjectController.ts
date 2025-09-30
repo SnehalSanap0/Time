@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import Subject from "../models/Subject";
 
 export const getSubjects = async (_req: Request, res: Response) => {
-  const data = await Subject.find();
+  const data = await Subject.find().populate('faculty', 'name email department');
   res.json(data);
 };
 
