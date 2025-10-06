@@ -42,7 +42,7 @@ const TimetableGeneration = () => {
   
   const [config, setConfig] = useState<GenerationConfig>({
     semester: 3,
-    year: 'SE',
+    year: 'TE',
     prioritizeLabAfternoon: true,
     allowBackToBackTheory: false,
     maxConsecutiveHours: 3,

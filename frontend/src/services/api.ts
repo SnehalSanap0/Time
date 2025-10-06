@@ -66,8 +66,8 @@ class ApiService<T extends { id?: string }> {
     // Initial fetch
     fetchData();
     
-    // Poll every 3 seconds for changes
-    const intervalId = setInterval(fetchData, 3000);
+    // Poll every 1 second for changes (faster updates)
+    const intervalId = setInterval(fetchData, 1000);
 
     return () => {
       clearInterval(intervalId);

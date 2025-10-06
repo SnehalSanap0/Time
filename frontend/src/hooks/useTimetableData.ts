@@ -233,6 +233,16 @@ export const useTimetableData = () => {
     setError(null);
   }, []);
 
+  const refreshTimetableSlots = useCallback(async () => {
+    try {
+      const data = await timetableSlotsService.getAll();
+      setTimetableSlots(data);
+    } catch (err) {
+      console.error('Error refreshing timetable slots:', err);
+      setError(err instanceof Error ? err.message : 'Failed to refresh timetable slots');
+    }
+  }, []);
+
   return {
     // Data
     subjects,
@@ -268,6 +278,7 @@ export const useTimetableData = () => {
     updateTimetableSlot,
     deleteTimetableSlot,
     setTimetableSlots,
+    refreshTimetableSlots,
     
     // Error handling
     clearError,
