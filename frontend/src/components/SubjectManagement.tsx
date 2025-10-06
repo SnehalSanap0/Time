@@ -323,7 +323,11 @@ const SubjectManagement = () => {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Faculty:</span>
                   <span className="font-medium">
-                    {typeof subject.faculty === 'object' ? subject.faculty.name : subject.faculty}
+                    {subject.faculty
+                      ? typeof subject.faculty === 'object'
+                        ? subject.faculty.name
+                        : subject.faculty
+                      : 'No Faculty'}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">

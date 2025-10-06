@@ -102,8 +102,8 @@ const FacultyManagement = () => {
     }
   };
 
-  const availableSubjects = ['DBMS', 'Software Engineering', 'Machine Learning', 'Data Structures', 'Web Development', 'AI', 'Computer Networks', 'Operating Systems'];
-  const timeSlots = ['Morning (8-12)', 'Afternoon (12-4)', 'Evening (4-6)'];
+  const availableSubjects = ['DBMS', 'MIS', 'COA', 'Data Structures', 'IoT', 'AI', 'PBL', 'Operating Systems'];
+  const timeSlots = ['Morning (8-3)', 'Afternoon (10-5)'];
 
   if (loading) {
     return <LoadingSpinner text="Loading faculty data..." />;
