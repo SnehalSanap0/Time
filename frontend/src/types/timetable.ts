@@ -39,6 +39,7 @@ export interface Lab {
   equipment: string[];
   floor: number;
   availableHours: string[];
+  compatibleSubjects: string[];
 }
 
 export interface TimetableSlot {

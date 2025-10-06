@@ -54,7 +54,8 @@ const labSchema = new Schema<LabDocument>({
   type: { type: String, required: true },
   equipment: [{ type: String }],
   floor: { type: Number, required: true },
-  availableHours: [{ type: String }]
+  availableHours: [{ type: String }],
+  compatibleSubjects: [{ type: String }]
 }, {
   timestamps: true
 });
