@@ -1,4 +1,4 @@
-import { Subject, Faculty, Classroom, Lab, TimetableSlot } from '../types/timetable';
+import { Subject, Faculty, Classroom, Lab, TimetableSlot, ScheduledHour } from '../types/timetable';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
@@ -76,11 +76,140 @@ class ApiService<T extends { id?: string }> {
 }
 
 // Service instances
-export const subjectsService = new ApiService<Subject>('subjects');
-export const facultyService = new ApiService<Faculty>('faculty');
-export const classroomsService = new ApiService<Classroom>('classrooms');
-export const laboratoriesService = new ApiService<Lab>('labs');
-export const timetableSlotsService = new ApiService<TimetableSlot>('timetable-slots');
+export const subjectsService = new class extends ApiService<Subject> {
+  constructor() { super('subjects'); }
+  
+  async getBySemester(semester: number): Promise<Subject[]> {
+    const response = await fetch(`${API_BASE_URL}/subjects?semester=${semester}`);
+    if (!response.ok) throw new Error('Failed to fetch subjects by semester');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+
+  async getByDepartment(department: string): Promise<Subject[]> {
+    const response = await fetch(`${API_BASE_URL}/subjects?department=${encodeURIComponent(department)}`);
+    if (!response.ok) throw new Error('Failed to fetch subjects by department');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+
+  async getByFaculty(facultyId: string): Promise<Subject[]> {
+    const response = await fetch(`${API_BASE_URL}/subjects?facultyId=${facultyId}`);
+    if (!response.ok) throw new Error('Failed to fetch subjects by faculty');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+}();
+
+export const facultyService = new class extends ApiService<Faculty> {
+  constructor() { super('faculty'); }
+  
+  async getByDepartment(department: string): Promise<Faculty[]> {
+    const response = await fetch(`${API_BASE_URL}/faculty?department=${encodeURIComponent(department)}`);
+    if (!response.ok) throw new Error('Failed to fetch faculty by department');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+
+  async getAvailableFaculty(slot: Omit<TimetableSlot, 'id' | 'facultyId'>): Promise<Faculty[]> {
+    const response = await fetch(`${API_BASE_URL}/faculty/available`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(slot)
+    });
+    if (!response.ok) throw new Error('Failed to fetch available faculty');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+}();
+
+export const classroomsService = new class extends ApiService<Classroom> {
+  constructor() { super('classrooms'); }
+  
+  async getAvailableRooms(slot: Omit<TimetableSlot, 'id' | 'roomId'>): Promise<Classroom[]> {
+    const response = await fetch(`${API_BASE_URL}/classrooms/available`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(slot)
+    });
+    if (!response.ok) throw new Error('Failed to fetch available classrooms');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+}();
+
+export const laboratoriesService = new class extends ApiService<Lab> {
+  constructor() { super('labs'); }
+  
+  async getAvailableLabs(slot: Omit<TimetableSlot, 'id' | 'labId'>): Promise<Lab[]> {
+    const response = await fetch(`${API_BASE_URL}/labs/available`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(slot)
+    });
+    if (!response.ok) throw new Error('Failed to fetch available labs');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+}();
+
+export const timetableSlotsService = new class extends ApiService<TimetableSlot> {
+  constructor() { super('timetable-slots'); }
+  
+  async getByFilters(filters: {
+    year?: string;
+    semester?: number;
+    batch?: string;
+    day?: string;
+    facultyId?: string;
+    subjectId?: string;
+  }): Promise<TimetableSlot[]> {
+    const params = new URLSearchParams();
+    if (filters.year) params.append('year', filters.year);
+    if (filters.semester) params.append('semester', filters.semester.toString());
+    if (filters.batch) params.append('batch', filters.batch);
+    if (filters.day) params.append('day', filters.day);
+    if (filters.facultyId) params.append('facultyId', filters.facultyId);
+    if (filters.subjectId) params.append('subjectId', filters.subjectId);
+    
+    const response = await fetch(`${API_BASE_URL}/timetable-slots?${params.toString()}`);
+    if (!response.ok) throw new Error('Failed to fetch timetable slots with filters');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+}();
+
+export const scheduledHoursService = new class extends ApiService<ScheduledHour> {
+  constructor() { super('scheduled-hours'); }
+  
+  async getBySubject(subjectId: string): Promise<ScheduledHour[]> {
+    const response = await fetch(`${API_BASE_URL}/scheduled-hours?subjectId=${subjectId}`);
+    if (!response.ok) throw new Error('Failed to fetch scheduled hours by subject');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+  
+  async getByFaculty(facultyId: string): Promise<ScheduledHour[]> {
+    const response = await fetch(`${API_BASE_URL}/scheduled-hours?facultyId=${facultyId}`);
+    if (!response.ok) throw new Error('Failed to fetch scheduled hours by faculty');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+  
+  async getByBatch(batch: string): Promise<ScheduledHour[]> {
+    const response = await fetch(`${API_BASE_URL}/scheduled-hours?batch=${encodeURIComponent(batch)}`);
+    if (!response.ok) throw new Error('Failed to fetch scheduled hours by batch');
+    const data = await response.json();
+    return data.map((item: any) => ({ ...item, id: item._id }));
+  }
+  
+  async getRemainingHours(subjectId: string, batch: string): Promise<number> {
+    const response = await fetch(`${API_BASE_URL}/scheduled-hours/remaining?subjectId=${subjectId}&batch=${encodeURIComponent(batch)}`);
+    if (!response.ok) throw new Error('Failed to fetch remaining scheduled hours');
+    const data = await response.json();
+    return data.remainingHours;
+  }
+}();
 
 // Timetable Service
 export class TimetableService {

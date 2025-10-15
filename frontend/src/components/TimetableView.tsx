@@ -71,25 +71,27 @@ const TimetableView = () => {
   };
 
   const timeSlots = [
-    '8:00-9:00',
-    '9:00-10:00',
-    '10:00-10:15',
-    '10:15-11:15',
-    '11:15-12:15',
-    '12:15-1:15',
-    '1:15-3:15',
-    '3:15-5:15',
+    '8:10-10:10',   // Morning batch - 2 hours
+    '10:10-10:25',  // Break
+    '10:25-12:15',  // Morning batch - 1h 50m
+    '12:15-1:05',   // Lunch break
+    '1:05-2:55',    // Morning batch - 1h 50m
+    '2:55-3:05',    // Break
+    '3:05-4:55'     // Afternoon batch - 1h 50m
   ];
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   const getSlotForTimeAndDay = (time: string, day: string): TimetableSlot | null => {
     return timetableData.find(slot => 
-      slot.day === day && 
-      (slot.time === time || 
-       (time === '1:15-3:15' && slot.time === '1:15-3:15') ||
-       (time === '3:15-5:15' && slot.time === '3:15-5:15'))
+      slot.day === day && slot.time === time
     ) || null;
+  };
+
+  const getMultipleSlotsForTimeAndDay = (time: string, day: string): TimetableSlot[] => {
+    return timetableData.filter(slot => 
+      slot.day === day && slot.time === time
+    );
   };
 
   const renderTimetableGrid = () => {
@@ -155,37 +157,35 @@ const TimetableView = () => {
                     {time}
                   </td>
                   {days.map((day) => {
-                    const slot = getSlotForTimeAndDay(time, day);
+                    const slots = getMultipleSlotsForTimeAndDay(time, day);
                     return (
                       <td key={`${day}-${time}`} className="border border-gray-200 px-2 py-2">
-                        {slot ? (
-                          <div className={`p-2 rounded-lg text-xs ${
-                            time === '10:00-10:15' || time === '12:15-1:15'
-                              ? 'bg-gray-100 text-gray-600'
-                              : slot.type === 'lab'
-                              ? 'bg-green-100 text-green-800 border border-green-200'
-                              : 'bg-blue-100 text-blue-800 border border-blue-200'
-                          }`}>
-                            {time === '10:00-10:15' ? (
-                              <div className="font-medium text-center">Break</div>
-                            ) : time === '12:15-1:15' ? (
-                              <div className="font-medium text-center">Lunch Break</div>
-                            ) : (
-                              <>
+                        {time === '10:10-10:25' || time === '12:15-1:05' || time === '2:55-3:05' ? (
+                          <div className="p-2 rounded-lg text-xs bg-gray-100 text-gray-600">
+                            <div className="font-medium text-center">
+                              {time === '10:10-10:25' ? 'Break' : 
+                               time === '12:15-1:05' ? 'Lunch' : 'Break'}
+                            </div>
+                          </div>
+                        ) : slots.length > 0 ? (
+                          <div className="space-y-1">
+                            {slots.map((slot, index) => (
+                              <div key={index} className={`p-2 rounded-lg text-xs ${
+                                slot.type === 'lab'
+                                  ? 'bg-green-100 text-green-800 border border-green-200'
+                                  : 'bg-blue-100 text-blue-800 border border-blue-200'
+                              }`}>
                                 <div className="font-medium">{slot.subject}</div>
                                 <div className="text-gray-600 mt-1">{slot.faculty}</div>
                                 <div className="text-gray-500">{slot.room}</div>
                                 {slot.batch && (
                                   <div className="text-green-600 font-medium">Batch {slot.batch}</div>
                                 )}
-                              </>
-                            )}
+                              </div>
+                            ))}
                           </div>
                         ) : (
-                          <div className="p-2 text-center text-gray-400 text-xs">
-                            {time === '10:00-10:15' ? 'Break' : 
-                             time === '12:15-1:15' ? 'Lunch' : 'Free'}
-                          </div>
+                          <div className="p-2 text-center text-gray-400 text-xs">Free</div>
                         )}
                       </td>
                     );

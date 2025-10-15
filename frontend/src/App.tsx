@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, BookOpen, Clock, Settings, Download, Home } from 'lucide-react';
+import { Calendar, Users, BookOpen, Clock, Settings, Download, Home, Brain } from 'lucide-react';
 import { checkApiHealth } from './services/api';
 import Dashboard from './components/Dashboard';
 import SubjectManagement from './components/SubjectManagement';
@@ -7,8 +7,9 @@ import FacultyManagement from './components/FacultyManagement';
 import TimetableGeneration from './components/TimetableGeneration';
 import TimetableView from './components/TimetableView';
 import InfrastructureManagement from './components/InfrastructureManagement';
+import AIDemo from './components/AIDemo';
 
-type TabType = 'dashboard' | 'subjects' | 'faculty' | 'infrastructure' | 'generate' | 'view';
+type TabType = 'dashboard' | 'subjects' | 'faculty' | 'infrastructure' | 'generate' | 'view' | 'ai-demo';
 
 function App() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -34,6 +35,7 @@ function App() {
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'ai-demo', label: 'AI Features', icon: Brain },
     { id: 'subjects', label: 'Subjects', icon: BookOpen },
     { id: 'faculty', label: 'Faculty', icon: Users },
     { id: 'infrastructure', label: 'Infrastructure', icon: Settings },
@@ -45,6 +47,8 @@ function App() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
+      case 'ai-demo':
+        return <AIDemo />;
       case 'subjects':
         return <SubjectManagement />;
       case 'faculty':

@@ -4,7 +4,7 @@ import { TimetableService } from '../services/api';
 import { Subject, Faculty, Classroom, Lab, TimetableSlot, Conflict } from '../types/timetable';
 import { useTimetableData } from '../hooks/useTimetableData';
 import { LoadingSpinner } from './LoadingSpinner';
-import { TimetableGenerator } from '../utils/timetableGenerator';
+import { AITimetableGenerator } from '../utils/aiTimetableGenerator';
 interface GenerationConfig {
   semester: number;
   year: 'SE' | 'TE' | 'BE';
@@ -39,6 +39,8 @@ const TimetableGeneration = () => {
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
   const [generationProgress, setGenerationProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<any>(null);
+  const [generationStats, setGenerationStats] = useState<any>(null);
   
   const [config, setConfig] = useState<GenerationConfig>({
     semester: 3,
@@ -165,20 +167,22 @@ const TimetableGeneration = () => {
 
   const simulateGeneration = async () => {
     const steps = [
-      { step: 'Analyzing constraints and requirements...', progress: 15 },
-      { step: 'Loading subjects and faculty data...', progress: 30 },
-      { step: 'Allocating theory sessions...', progress: 50 },
-      { step: 'Scheduling laboratory sessions...', progress: 70 },
-      { step: 'Optimizing faculty schedules...', progress: 85 },
+      { step: 'Initializing AI constraint analyzer...', progress: 10 },
+      { step: 'Analyzing constraints with Gemini AI...', progress: 25 },
+      { step: 'Loading subjects and faculty data...', progress: 40 },
+      { step: 'Generating AI-powered slot recommendations...', progress: 55 },
+      { step: 'Allocating theory sessions with AI insights...', progress: 70 },
+      { step: 'Scheduling laboratory sessions intelligently...', progress: 80 },
+      { step: 'Optimizing faculty schedules using AI...', progress: 90 },
       { step: 'Validating final timetable...', progress: 95 },
       { step: 'Saving to database...', progress: 98 },
-      { step: 'Generation complete!', progress: 100 },
+      { step: 'AI-powered generation complete!', progress: 100 },
     ];
 
     for (const { step, progress } of steps) {
       setCurrentStep(step);
       setGenerationProgress(progress);
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 600));
     }
   };
 
@@ -221,7 +225,7 @@ const handleGenerate = async () => {
       throw new Error(`No classrooms assigned to ${config.year}`);
     }
 
-    setCurrentStep('Generating timetable with constraints...');
+    setCurrentStep('Generating timetable with AI-powered constraints...');
     setGenerationProgress(60);
 
     // Create constraints object
@@ -234,8 +238,8 @@ const handleGenerate = async () => {
       facultyRestSlots: 1,
     };
 
-    // Generate timetable using the TimetableGenerator with Firebase data
-    const generator = new TimetableGenerator(
+    // Generate timetable using the AI-powered TimetableGenerator
+    const generator = new AITimetableGenerator(
       semesterSubjects,
       relevantFaculty,
       yearClassrooms,
@@ -243,7 +247,7 @@ const handleGenerate = async () => {
       constraints
     );
 
-    const result = generator.generateTimetable();
+    const result = await generator.generateTimetable(config.year, config.semester);
     
     setCurrentStep('Saving timetable to database...');
     setGenerationProgress(90);
@@ -261,7 +265,7 @@ const handleGenerate = async () => {
       // Update local state with generated slots (including semester)
       setTimetableSlots(slotsWithSemester);
       
-      setCurrentStep('Timetable generation completed successfully!');
+      setCurrentStep('AI-powered timetable generation completed successfully!');
       setGenerationProgress(100);
     } else {
       throw new Error('No timetable slots were generated');
@@ -270,16 +274,25 @@ const handleGenerate = async () => {
     setGenerationStatus('success');
     setLastGenerated(new Date());
     
+    // Store AI analysis results and generation stats
+    setAiAnalysisResult(result.analysisResult);
+    setGenerationStats(result.generationStats);
+    
     // Update conflicts with generation results
     const updatedConflicts = [
       {
         type: 'success' as const,
-        message: `Successfully generated and saved timetable for ${config.year} Semester ${config.semester}`,
+        message: `Successfully generated AI-optimized timetable for ${config.year} Semester ${config.semester}`,
         severity: 'low' as const,
       },
       {
         type: 'info' as const,
-        message: `Generated ${result.slots.length} time slots and saved to database`,
+        message: `Generated ${result.slots.length} time slots with ${result.analysisResult.constraintScore}% constraint satisfaction`,
+        severity: 'low' as const,
+      },
+      {
+        type: 'info' as const,
+        message: `Consistency Hash: ${result.generationStats.consistencyHash.substring(0, 16)}...`,
         severity: 'low' as const,
       },
       ...result.conflicts.map(conflict => ({
@@ -425,7 +438,7 @@ const handleGenerate = async () => {
       {/* Generation Status */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Generation Status</h3>
+          <h3 className="text-lg font-semibold text-gray-900">AI-Powered Generation Status</h3>
           <div className="flex items-center space-x-2">
             {getStatusIcon()}
             <span className={`text-sm font-medium ${
@@ -440,9 +453,31 @@ const handleGenerate = async () => {
         </div>
 
         {lastGenerated && (
-          <p className="text-sm text-gray-600 mb-4">
-            Last generated: {lastGenerated.toLocaleString()} | Generated slots: {timetableSlots.length}
-          </p>
+          <div className="mb-4 space-y-2">
+            <p className="text-sm text-gray-600">
+              Last generated: {lastGenerated.toLocaleString()} | Generated slots: {timetableSlots.length}
+            </p>
+            {generationStats && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="bg-blue-50 p-2 rounded">
+                  <span className="font-medium text-blue-800">Constraint Score:</span>
+                  <span className="ml-1 text-blue-600">{generationStats.constraintScore}%</span>
+                </div>
+                <div className="bg-green-50 p-2 rounded">
+                  <span className="font-medium text-green-800">Faculty Utilization:</span>
+                  <span className="ml-1 text-green-600">{generationStats.facultyUtilization}%</span>
+                </div>
+                <div className="bg-purple-50 p-2 rounded">
+                  <span className="font-medium text-purple-800">Room Utilization:</span>
+                  <span className="ml-1 text-purple-600">{generationStats.roomUtilization}%</span>
+                </div>
+                <div className="bg-orange-50 p-2 rounded">
+                  <span className="font-medium text-orange-800">Theory/Lab:</span>
+                  <span className="ml-1 text-orange-600">{generationStats.theorySlots}/{generationStats.labSlots}</span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         <button
@@ -455,7 +490,7 @@ const handleGenerate = async () => {
           }`}
         >
           <Play className="h-5 w-5" />
-          <span>{isGenerating ? 'Generating...' : 'Generate Timetable'}</span>
+          <span>{isGenerating ? 'AI Generating...' : 'Generate AI-Optimized Timetable'}</span>
         </button>
       </div>
 
@@ -611,6 +646,91 @@ const handleGenerate = async () => {
               ></div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* AI Analysis Results */}
+      {aiAnalysisResult && (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            AI Analysis Results
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-medium text-gray-700 mb-3">Constraint Analysis</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Overall Score:</span>
+                  <span className={`font-medium ${
+                    aiAnalysisResult.constraintScore >= 80 ? 'text-green-600' :
+                    aiAnalysisResult.constraintScore >= 60 ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
+                    {aiAnalysisResult.constraintScore}%
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Valid Configuration:</span>
+                  <span className={`font-medium ${aiAnalysisResult.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                    {aiAnalysisResult.isValid ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">AI Recommendations:</span>
+                  <span className="font-medium text-blue-600">
+                    {aiAnalysisResult.recommendedSlots.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-medium text-gray-700 mb-3">Optimization Suggestions</h4>
+              <div className="space-y-1">
+                {aiAnalysisResult.optimizationSuggestions.slice(0, 3).map((suggestion: string, index: number) => (
+                  <div key={index} className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                    • {suggestion}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          {aiAnalysisResult.recommendedSlots.length > 0 && (
+            <div className="mt-6">
+              <h4 className="font-medium text-gray-700 mb-3">AI Slot Recommendations</h4>
+              <div className="max-h-40 overflow-y-auto">
+                <div className="space-y-2">
+                  {aiAnalysisResult.recommendedSlots.slice(0, 5).map((slot: any, index: number) => (
+                    <div key={index} className="text-sm bg-blue-50 p-2 rounded border-l-4 border-blue-400">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-medium">{slot.subject}</span> - {slot.faculty}
+                          <br />
+                          <span className="text-gray-600">{slot.day} {slot.time} in {slot.room}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-xs px-2 py-1 rounded ${
+                            slot.confidence >= 80 ? 'bg-green-100 text-green-800' :
+                            slot.confidence >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {slot.confidence}% confidence
+                          </div>
+                        </div>
+                      </div>
+                      {slot.reasoning && (
+                        <div className="text-xs text-gray-500 mt-1 italic">
+                          {slot.reasoning}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
