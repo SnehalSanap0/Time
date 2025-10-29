@@ -1,5 +1,3 @@
-// Replace the TimetableView component with this updated version that uses Firebase data
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Filter, Download, Eye, Users, BookOpen } from 'lucide-react';
 import { useTimetableData } from '../hooks/useTimetableData';
@@ -7,17 +5,47 @@ import { TimetableService } from '../services/api';
 import { TimetableSlot } from '../types/timetable';
 import { LoadingSpinner } from './LoadingSpinner';
 
+// **FIX 1: Add time parsing helpers**
+/**
+ * Parses a time string (e.g., "8:10" or "10:25") into a number (810 or 1025).
+ */
+const parseTime = (timeStr: string): number => {
+  return parseInt(timeStr.replace(':', ''), 10);
+};
+
+/**
+ * Checks if a slot's time is fully contained within a row's time.
+ * @param slotTime (e.g., "8:10-9:10")
+ * @param rowTime (e.g., "8:10-10:10")
+ * @returns boolean
+ */
+const isSlotInRow = (slotTime: string, rowTime: string): boolean => {
+  try {
+    const [slotStart, slotEnd] = slotTime.split('-').map(parseTime);
+    const [rowStart, rowEnd] = rowTime.split('-').map(parseTime);
+
+    // Check for containment: rowStart <= slotStart AND slotEnd <= rowEnd
+    return rowStart <= slotStart && slotEnd <= rowEnd;
+  } catch (e) {
+    console.error("Error parsing time in isSlotInRow:", slotTime, rowTime, e);
+    return false;
+  }
+};
+
+
 const TimetableView = () => {
-  const { faculty, loading: dataLoading, error: dataError } = useTimetableData();
-  
+  // useTimetableData provides *all* timetable slots, not just generated ones
+  const { faculty, timetableSlots: allSlotsFromHook, loading: dataLoading, error: dataError } = useTimetableData();
+
   const [viewType, setViewType] = useState<'year' | 'batch' | 'faculty'>('year');
   const [selectedYear, setSelectedYear] = useState<'SE' | 'TE' | 'BE'>('SE');
   const [selectedSemester, setSelectedSemester] = useState(3);
   const [selectedBatch, setSelectedBatch] = useState<'A' | 'B' | 'C'>('A');
   const [selectedFaculty, setSelectedFaculty] = useState('');
-  
+
+  // This state will hold the *filtered* data for the view
   const [timetableData, setTimetableData] = useState<TimetableSlot[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Local loading for filtering
   const [error, setError] = useState<string | null>(null);
 
   // Set default faculty when faculty data loads
@@ -27,75 +55,73 @@ const TimetableView = () => {
     }
   }, [faculty, selectedFaculty]);
 
-  // Load timetable data based on current selection
+  // **FIX 2: Refactored data loading logic**
+  // This useEffect now filters the data from the hook instead of re-fetching
   useEffect(() => {
-    loadTimetableData();
-  }, [viewType, selectedYear, selectedSemester, selectedBatch, selectedFaculty]);
-
-  const loadTimetableData = async () => {
-    if (!selectedYear || (viewType === 'faculty' && !selectedFaculty)) return;
-    
     setLoading(true);
     setError(null);
-    
+
     try {
       let slots: TimetableSlot[] = [];
-      
+
+      // Filter slots from the main hook based on year and semester first
+      const yearSemSlots = allSlotsFromHook.filter(
+        s => s.year === selectedYear && s.semester === selectedSemester
+      );
+
       switch (viewType) {
         case 'year':
-          // Load theory classes for the entire year (no batch filter)
-          slots = await TimetableService.getSlotsByYearSemesterAndBatch(selectedYear, selectedSemester);
+          // 'Year' view shows only theory slots (which have no batch)
+          slots = yearSemSlots.filter(s => s.type === 'theory' && !s.batch);
           break;
-          
+
         case 'batch':
-          // Load both theory and lab sessions for selected batch
-          const theorySlots = await TimetableService.getSlotsByYearSemesterAndBatch(selectedYear, selectedSemester);
-          const labSlots = await TimetableService.getSlotsByYearSemesterAndBatch(selectedYear, selectedSemester, selectedBatch);
-          slots = [...theorySlots, ...labSlots];
+          // 'Batch' view shows theory (no batch) + labs for the selected batch
+          slots = yearSemSlots.filter(s =>
+            (s.type === 'theory' && !s.batch) || (s.type === 'lab' && s.batch === selectedBatch)
+          );
           break;
-          
+
         case 'faculty':
-          // Load all slots and filter by faculty
-          const allSlots = await TimetableService.getSlotsByYearAndSemester(selectedYear, selectedSemester);
-          slots = allSlots.filter(slot => slot.faculty === selectedFaculty);
+          // 'Faculty' view shows all slots for that faculty in the year/sem
+          if (selectedFaculty) {
+            slots = yearSemSlots.filter(s => s.faculty === selectedFaculty);
+          }
           break;
       }
-      
+
       setTimetableData(slots);
     } catch (err) {
-      console.error('Error loading timetable data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load timetable data');
+      console.error('Error filtering timetable data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to filter timetable data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [viewType, selectedYear, selectedSemester, selectedBatch, selectedFaculty, allSlotsFromHook]);
 
+  // This is the visual structure of the table rows
   const timeSlots = [
-    '8:10-10:10',   // Morning batch - 2 hours
-    '10:10-10:25',  // Break
-    '10:25-12:15',  // Morning batch - 1h 50m
-    '12:15-1:05',   // Lunch break
-    '1:05-2:55',    // Morning batch - 1h 50m
-    '2:55-3:05',    // Break
-    '3:05-4:55'     // Afternoon batch - 1h 50m
+    '8:10-10:10',   // Row 1 (Spans 2 theory slots)
+    '10:10-10:25',  // Break
+    '10:25-12:15',  // Row 2 (Spans 2 theory slots)
+    '12:15-1:05',   // Lunch break
+    '1:05-2:55',    // Row 3 (Spans 2 theory slots)
+    '2:55-3:05',    // Break
+    '3:05-4:55'     // Row 4 (Spans 2 theory slots)
   ];
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  const getSlotForTimeAndDay = (time: string, day: string): TimetableSlot | null => {
-    return timetableData.find(slot => 
-      slot.day === day && slot.time === time
-    ) || null;
-  };
-
-  const getMultipleSlotsForTimeAndDay = (time: string, day: string): TimetableSlot[] => {
-    return timetableData.filter(slot => 
-      slot.day === day && slot.time === time
+  // **FIX 3: Updated function to find all slots that fit in the row**
+  const getMultipleSlotsForTimeAndDay = (rowTime: string, day: string): TimetableSlot[] => {
+    return timetableData.filter(slot =>
+      slot.day === day && isSlotInRow(slot.time, rowTime)
     );
   };
 
   const renderTimetableGrid = () => {
-    if (loading) {
+    // Use the hook's loading status
+    if (dataLoading) {
       return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <LoadingSpinner text="Loading timetable data..." />
@@ -103,31 +129,25 @@ const TimetableView = () => {
       );
     }
 
-    if (error) {
+    if (error) { // Show local filter error
       return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <div className="text-center">
             <div className="text-red-600 mb-2">Error loading timetable</div>
             <div className="text-gray-600 text-sm">{error}</div>
-            <button 
-              onClick={loadTimetableData}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Retry
-            </button>
           </div>
         </div>
       );
     }
 
-    if (timetableData.length === 0) {
+    if (timetableData.length === 0 && !loading) {
       return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <div className="text-center">
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <div className="text-gray-600 mb-2">No timetable data found</div>
             <div className="text-gray-500 text-sm">
-              Generate a timetable for {selectedYear} Semester {selectedSemester} to view the schedule
+              No data matches the current filter (Year: {selectedYear}, Sem: {selectedSemester})
             </div>
           </div>
         </div>
@@ -137,10 +157,10 @@ const TimetableView = () => {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse min-w-[1000px]">
             <thead>
               <tr className="bg-gray-50">
-                <th className="border border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-700">
+                <th className="border border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-700 w-32">
                   Time
                 </th>
                 {days.map((day) => (
@@ -150,34 +170,38 @@ const TimetableView = () => {
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-200">
               {timeSlots.map((time) => (
                 <tr key={time} className="hover:bg-gray-50">
-                  <td className="border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-25">
+                  <td className="border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-25 align-top">
                     {time}
                   </td>
                   {days.map((day) => {
+                    // **FIX 4: Use the corrected function here**
                     const slots = getMultipleSlotsForTimeAndDay(time, day);
+
+                    // Sort slots to show theory first or by time
+                    slots.sort((a, b) => parseTime(a.time.split('-')[0]) - parseTime(b.time.split('-')[0]));
+
                     return (
-                      <td key={`${day}-${time}`} className="border border-gray-200 px-2 py-2">
+                      <td key={`${day}-${time}`} className="border border-gray-200 px-2 py-2 align-top h-24">
                         {time === '10:10-10:25' || time === '12:15-1:05' || time === '2:55-3:05' ? (
-                          <div className="p-2 rounded-lg text-xs bg-gray-100 text-gray-600">
+                          <div className="p-2 rounded-lg text-xs bg-gray-100 text-gray-600 h-full flex items-center justify-center">
                             <div className="font-medium text-center">
-                              {time === '10:10-10:25' ? 'Break' : 
-                               time === '12:15-1:05' ? 'Lunch' : 'Break'}
+                              {time === '10:10-10:25' ? 'Break' :
+                                time === '12:15-1:05' ? 'Lunch' : 'Break'}
                             </div>
                           </div>
                         ) : slots.length > 0 ? (
                           <div className="space-y-1">
                             {slots.map((slot, index) => (
-                              <div key={index} className={`p-2 rounded-lg text-xs ${
-                                slot.type === 'lab'
+                              <div key={index} className={`p-2 rounded-lg text-xs ${slot.type === 'lab'
                                   ? 'bg-green-100 text-green-800 border border-green-200'
                                   : 'bg-blue-100 text-blue-800 border border-blue-200'
-                              }`}>
+                                }`}>
                                 <div className="font-medium">{slot.subject}</div>
                                 <div className="text-gray-600 mt-1">{slot.faculty}</div>
-                                <div className="text-gray-500">{slot.room}</div>
+                                <div className="text-gray-500">{slot.room} ({slot.time})</div>
                                 {slot.batch && (
                                   <div className="text-green-600 font-medium">Batch {slot.batch}</div>
                                 )}
@@ -199,13 +223,14 @@ const TimetableView = () => {
     );
   };
 
+  // This is the main data loading check for the *hook*
   if (dataLoading) {
     return <LoadingSpinner text="Loading application data..." />;
   }
 
   return (
     <div className="space-y-6">
-      {/* Data Error Display */}
+      {/* Data Error Display from Hook */}
       {dataError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center">
@@ -346,7 +371,7 @@ const TimetableView = () => {
               {viewType === 'faculty' && 'Shows all assigned classes and labs from database'}
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              Showing {timetableData.length} scheduled slots from Firebase
+              Showing {timetableData.length} scheduled slots from local state
             </p>
           </div>
         </div>

@@ -28,6 +28,7 @@ export interface ConstraintAnalysisResult {
     time: string;
     room: string;
     type: 'theory' | 'lab';
+    batch?: 'A' | 'B' | 'C';
     confidence: number;
     reasoning: string;
   }>;
