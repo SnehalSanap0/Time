@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const TimetableSlotSchema = new mongoose.Schema({
-  day: { type: String, enum: ["Monday","Tuesday","Wednesday","Thursday","Friday"], required: true },
+  day: { type: String, enum: ["Monday","Tuesday","Wednesday","Thursday","Friday", "Saturday"], required: true },
   time: { type: String, required: true }, // e.g., "09:00-10:00"
   subject: { type: String, required: true }, // Changed to String to match frontend
   faculty: { type: String, required: true }, // Changed to String to match frontend
