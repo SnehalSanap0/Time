@@ -1,28 +1,30 @@
 import React, { useState } from 'react';
-import { Building, Clock, Users, MapPin, Settings, Cpu, Wrench, AlertCircle, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Building, Clock, Users, MapPin, Settings, Cpu, Wrench, AlertCircle, Plus, Edit2, Trash2, BookOpen } from 'lucide-react';
 import { useTimetableData } from '../hooks/useTimetableData';
 import { LoadingSpinner } from './LoadingSpinner';
+import { Subject } from '../types/timetable';
 
 const InfrastructureManagement = () => {
-  const { 
-    classrooms, 
-    labs, 
-    loading, 
+  const {
+    classrooms,
+    labs,
+    loading,
     error,
+    subjects,
     addClassroom,
     addLab,
     updateClassroom,
     updateLab,
     deleteClassroom,
     deleteLab,
-    clearError 
+    clearError
   } = useTimetableData();
 
   const [activeTab, setActiveTab] = useState<'classrooms' | 'labs'>('classrooms');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Form data for classroom
   const [classroomFormData, setClassroomFormData] = useState({
     name: '',
@@ -41,6 +43,7 @@ const InfrastructureManagement = () => {
     equipment: [] as string[],
     floor: 1,
     availableHours: [] as string[],
+    compatibleSubjects: [] as string[]
   });
 
   const resetForms = () => {
@@ -59,6 +62,7 @@ const InfrastructureManagement = () => {
       equipment: [],
       floor: 1,
       availableHours: [],
+      compatibleSubjects: []
     });
     setEditingItem(null);
     setShowAddForm(false);
@@ -67,7 +71,7 @@ const InfrastructureManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    
+
     try {
       if (activeTab === 'classrooms') {
         if (editingItem) {
@@ -108,6 +112,7 @@ const InfrastructureManagement = () => {
         equipment: item.equipment,
         floor: item.floor,
         availableHours: item.availableHours || [],
+        compatibleSubjects: item.compatibleSubjects || []
       });
     }
     setEditingItem(item);
@@ -153,15 +158,20 @@ const InfrastructureManagement = () => {
     }
   };
 
+  const handleLabSubjectSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+    setLabFormData({ ...labFormData, compatibleSubjects: selectedOptions });
+  };
+
   // Options for forms
   const availableAmenities = [
-    'Projector', 'AC', 'Audio System', 'Smart Board', 
+    'Projector', 'AC', 'Audio System', 'Smart Board',
     'Whiteboard', 'WiFi', 'Power Outlets', 'Natural Light'
   ];
 
   const availableEquipment = [
-    '30 PCs', 'Projector', 'AC', 'Server', 'Network Equipment', 
-    'Switches', 'Routers', 'High-end PCs', 'GPU Servers', 
+    '30 PCs', 'Projector', 'AC', 'Server', 'Network Equipment',
+    'Switches', 'Routers', 'High-end PCs', 'GPU Servers',
     'Development Tools', 'Collaboration Tools', 'Whiteboard',
     'Smart Board', 'Audio System'
   ];
@@ -172,7 +182,7 @@ const InfrastructureManagement = () => {
   ];
 
   const labTypes = [
-    'Computer Lab', 'Specialized Lab', 'Research Lab', 
+    'Computer Lab', 'Specialized Lab', 'Research Lab',
     'Development Lab', 'General Lab', 'Hardware Lab'
   ];
 
@@ -186,13 +196,6 @@ const InfrastructureManagement = () => {
     { value: 'TE', label: 'Third Year (TE)' },
     { value: 'BE', label: 'Final Year (BE)' },
   ];
- 
-  
-  // Form data for classroom
- 
-
-  // Form data for lab
- 
 
   if (loading) {
     return <LoadingSpinner text="Loading infrastructure..." />;
@@ -325,7 +328,7 @@ const InfrastructureManagement = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Amenities
@@ -414,7 +417,23 @@ const InfrastructureManagement = () => {
                     />
                   </div>
                 </div>
-                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Compatible Subjects</label>
+                  <p className="text-xs text-gray-500 mb-2">Select subjects this lab can be used for. Leave blank for a general-purpose lab.</p>
+                  <select
+                    multiple
+                    value={labFormData.compatibleSubjects}
+                    onChange={handleLabSubjectSelect}
+                    className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    disabled={submitting}
+                  >
+                    {subjects.map((subject: Subject) => (
+                      <option key={subject.id} value={subject.code}>
+                        {subject.name} ({subject.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Equipment
@@ -465,7 +484,7 @@ const InfrastructureManagement = () => {
               >
                 {submitting && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
                 <span className={submitting ? "ml-2" : ""}>
-                  {submitting 
+                  {submitting
                     ? (editingItem ? 'Updating...' : 'Adding...')
                     : (editingItem ? `Update ${activeTab === 'classrooms' ? 'Classroom' : 'Laboratory'}` : `Add ${activeTab === 'classrooms' ? 'Classroom' : 'Laboratory'}`)
                   }
@@ -488,21 +507,19 @@ const InfrastructureManagement = () => {
       <div className="flex space-x-4 border-b border-gray-200">
         <button
           onClick={() => setActiveTab('classrooms')}
-          className={`pb-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-            activeTab === 'classrooms'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+          className={`pb-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'classrooms'
+            ? 'border-blue-500 text-blue-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
         >
           Classrooms ({classrooms.length})
         </button>
         <button
           onClick={() => setActiveTab('labs')}
-          className={`pb-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-            activeTab === 'labs'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+          className={`pb-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'labs'
+            ? 'border-blue-500 text-blue-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
         >
           Laboratories ({labs.length})
         </button>
@@ -574,11 +591,10 @@ const InfrastructureManagement = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Assigned Year:</span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      classroom.assignedYear === 'SE' ? 'bg-green-100 text-green-800' :
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${classroom.assignedYear === 'SE' ? 'bg-green-100 text-green-800' :
                       classroom.assignedYear === 'TE' ? 'bg-blue-100 text-blue-800' :
-                      'bg-purple-100 text-purple-800'
-                    }`}>
+                        'bg-purple-100 text-purple-800'
+                      }`}>
                       {classroom.assignedYear}
                     </span>
                   </div>
@@ -662,17 +678,29 @@ const InfrastructureManagement = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Type:</span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      lab.type === 'Computer Lab' ? 'bg-blue-100 text-blue-800' :
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${lab.type === 'Computer Lab' ? 'bg-blue-100 text-blue-800' :
                       lab.type === 'Specialized Lab' ? 'bg-purple-100 text-purple-800' :
-                      lab.type === 'Research Lab' ? 'bg-orange-100 text-orange-800' :
-                      lab.type === 'Development Lab' ? 'bg-emerald-100 text-emerald-800' :
-                      lab.type === 'Hardware Lab' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                        lab.type === 'Research Lab' ? 'bg-orange-100 text-orange-800' :
+                          lab.type === 'Development Lab' ? 'bg-emerald-100 text-emerald-800' :
+                            lab.type === 'Hardware Lab' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                      }`}>
                       {lab.type}
                     </span>
                   </div>
+                  {lab.compatibleSubjects && lab.compatibleSubjects.length > 0 && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Compatible Subjects:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {lab.compatibleSubjects.map((code: string) => (
+                          <span key={code} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            <BookOpen className="h-3 w-3 mr-1" />
+                            {code}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Equipment:</p>
                     <div className="flex flex-wrap gap-1">

@@ -68,7 +68,7 @@ const SubjectManagement = () => {
       year: subject.year,
       theoryHours: subject.theoryHours,
       labHours: subject.labHours,
-      faculty: subject.faculty,
+      faculty: typeof subject.faculty === 'object' ? subject.faculty._id : subject.faculty,
       semester: subject.semester,
     });
     setEditingSubject(subject);
@@ -240,7 +240,7 @@ const SubjectManagement = () => {
               >
                 <option value="">Select Faculty</option>
                 {faculty.map((facultyMember) => (
-                  <option key={facultyMember.id} value={facultyMember.name}>
+                  <option key={facultyMember.id} value={facultyMember.id}>
                     {facultyMember.name} - {facultyMember.department}
                   </option>
                 ))}
@@ -322,7 +322,13 @@ const SubjectManagement = () => {
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Faculty:</span>
-                  <span className="font-medium">{subject.faculty}</span>
+                  <span className="font-medium">
+                    {subject.faculty
+                      ? typeof subject.faculty === 'object'
+                        ? subject.faculty.name
+                        : subject.faculty
+                      : 'No Faculty'}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Semester:</span>

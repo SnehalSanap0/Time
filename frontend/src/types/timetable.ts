@@ -5,7 +5,7 @@ export interface Subject {
   year: 'SE' | 'TE' | 'BE';
   theoryHours: number;
   labHours: number;
-  faculty: string;
+  faculty: string | { _id: string; name: string; email: string; department: string };
   semester: number;
 }
 
@@ -39,6 +39,7 @@ export interface Lab {
   equipment: string[];
   floor: number;
   availableHours: string[];
+  compatibleSubjects: string[];
 }
 
 export interface TimetableSlot {
@@ -52,6 +53,7 @@ export interface TimetableSlot {
   year: 'SE' | 'TE' | 'BE';
   batch?: 'A' | 'B' | 'C';
   duration: number; // in hours
+  semester: number; // Add this field to track which semester the slot belongs to
 }
 
 export interface Constraint {
@@ -68,6 +70,11 @@ export interface TimetableConstraints {
   prioritizeLabAfternoon: boolean;
   allowBackToBackTheory: boolean;
   facultyRestSlots: number;
+  yearBatchType?: {
+    SE: 'Morning' | 'Afternoon';
+    TE: 'Morning' | 'Afternoon';
+    BE: 'Morning' | 'Afternoon';
+  };
 }
 
 export interface GenerationResult {
@@ -86,18 +93,4 @@ export interface Conflict {
   message: string;
   severity: 'low' | 'medium' | 'high';
   affectedEntities: string[];
-}
-
-export interface TimetableSlot {
-  id: string;
-  day: string;
-  time: string;
-  subject: string;
-  faculty: string;
-  room: string;
-  type: 'theory' | 'lab';
-  year: 'SE' | 'TE' | 'BE';
-  batch?: 'A' | 'B' | 'C';
-  duration: number; // in hours
-  semester: number; // Add this field to track which semester the slot belongs to
 }
